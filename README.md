@@ -1,5 +1,9 @@
 # prusa_connect
 
+## dependencies
+
+A Raspberry Pi zero, with a connected camera, and `rpicam-still` available on the OS.
+
 ## development
 
 ### generate an API client using docker
