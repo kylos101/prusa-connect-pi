@@ -58,16 +58,16 @@ func main() {
 		interval = defaultInterval
 	}
 
-	UploadSnapshot(cancelCtx, client, token)
+	UploadSnapshot(cancelCtx, client)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	defer cancel()
 	for range ticker.C {
-		UploadSnapshot(cancelCtx, client, token)
+		UploadSnapshot(cancelCtx, client)
 	}
 }
 
-func UploadSnapshot(ctx context.Context, client *openapi.APIClient, token string) {
+func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 	// capture a still
 	stillFilename := "output.jpg"
 	cmd := exec.Command("rpicam-still", "-n", "-o", stillFilename)
