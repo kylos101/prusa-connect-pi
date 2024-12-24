@@ -75,7 +75,7 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient, token string
 	if err != nil {
 		log.Fatalf("Error running rpicam-still: %v", err)
 	}
-	log.Printf("rpicam-still output: %s/n", out)
+	log.Printf("rpicam-still output: %s\n", out)
 
 	// build a request to upload the still
 	stillFile, err := os.Open(stillFilename)
