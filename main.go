@@ -3,70 +3,52 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 
-	"github.com/kylos101/prusa-connect/v2/connect"
+	"github.com/pb33f/libopenapi"
+	"github.com/pb33f/libopenapi/datamodel"
 )
 
 func main() {
-	// Replace with your actual base URL
-	baseURL := "http://localhost:8000"
-
-	client, err := connect.NewClient(baseURL)
+	apiUrl := os.Getenv("CONNECT_API_URL")
+	if apiUrl == "" {
+		log.Printf("Using default API URL")
+		apiUrl = "https://connect.prusa3d.com/app/"
+	}
+	baseURL, err := url.Parse(apiUrl)
 	if err != nil {
-		log.Fatalf("Error creating client: %v", err)
+		log.Fatalf("Error parsing API URL: %v", err)
+	}
+	config := datamodel.DocumentConfiguration{
+		AllowFileReferences:   true,
+		AllowRemoteReferences: true,
+		BaseURL:               baseURL,
 	}
 
-	// Set authentication if needed
-	client.SetAuth(os.Getenv("CONNECT_TOKEN"), os.Getenv("CONNECT_FINGERPRINT"), os.Getenv("CONNECT_COOKIE"))
-
-	// Example: Register a camera
-	printerUUID := "cfed5dce-86f4-4d7c-a198-9a81b176369f" // Replace with a valid UUID
-	origin := "OTHER"
-
-	cameraResponse, err := client.RegisterCamera(printerUUID, origin)
+	prusaConnect, err := os.ReadFile("./specs/prusaconnect.0.22.0.yaml")
 	if err != nil {
-		log.Printf("Error registering camera: %v", err)
-		// If you want to see the raw response for debugging:
-		// fmt.Println(string(err.(*connect.APIError).Body))
-		os.Exit(1)
+		log.Fatalf("Error reading OpenAPI spec file: %v", err)
 	}
-
-	fmt.Printf("Registered Camera ID: %d\n", cameraResponse.ID)
-	fmt.Printf("Registered Camera Token: %s\n", cameraResponse.Token)
-
-	// Example: Upload a snapshot (replace with actual image data)
-	snapshotData, err := os.ReadFile("path/to/your/snapshot.jpg") // Replace with the path to your image
+	log.Print("Read OpenAPI spec file, creating new openapi document")
+	document, err := libopenapi.NewDocumentWithConfiguration(prusaConnect, &config)
 	if err != nil {
-		log.Fatalf("Error reading snapshot file: %v", err)
+		log.Fatalf("Error creating new OpenAPI document from spec file: %v", err)
+	}
+	log.Print("Created new openapi document, building v3 model")
+	docModel, errors := document.BuildV3Model()
+	if len(errors) > 0 {
+		for i := range errors {
+			log.Printf("error: %e\n", errors[i])
+		}
+		log.Fatalf("cannot create v3 model from document: %d errors reported", len(errors))
 	}
 
-	err = client.UploadSnapshot(snapshotData)
-	if err != nil {
-		log.Fatalf("Error uploading snapshot: %v", err)
-	}
+	paths := docModel.Model.Paths.PathItems.Len()
+	schemas := docModel.Model.Components.Schemas.Len()
 
-	fmt.Println("Snapshot uploaded successfully")
-
-	// Example: Update Camera Info
-	config := connect.Config{
-		Name:   "Test Camera",
-		Driver: "V4L2",
-		Path:   "/dev/video1",
-	}
-	options := connect.Options{}
-	capabilities := []string{"resolution"}
-	cameraRequest := connect.CameraRequest{
-		Config:       &config,
-		Options:      &options,
-		Capabilities: capabilities,
-	}
-
-	updatedCamera, err := client.UpdateCamera(cameraRequest)
-	if err != nil {
-		log.Fatalf("Error updating camera: %v", err)
-	}
-
-	fmt.Printf("Updated Camera Name: %s\n", updatedCamera.Name)
+	// print the number of paths and schemas in the document
+	fmt.Printf("There are %d paths and %d schemas "+
+		"in the document", paths, schemas)
 
 }
