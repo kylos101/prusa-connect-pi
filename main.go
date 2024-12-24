@@ -22,9 +22,21 @@ func main() {
 		log.Fatalf("Error parsing API URL: %v", err)
 	}
 
+	token := os.Getenv("CONNECT_TOKEN")
+	if token == "" {
+		log.Fatal("No token provided")
+	}
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatal(err)
+	}
 	client := openapi.NewAPIClient(&openapi.Configuration{
 		Host:   baseURL.String(),
 		Scheme: baseURL.Scheme,
+		DefaultHeader: map[string]string{
+			"Token":       token,
+			"Fingerprint": hostname,
+		},
 	})
 	if client == nil {
 		log.Fatalf("Error creating client")
@@ -36,11 +48,6 @@ func main() {
 		"scheme":   baseURL.Scheme,
 	})
 	cancelCtx, cancel := context.WithCancel(ctx)
-
-	token := os.Getenv("CONNECT_TOKEN")
-	if token == "" {
-		log.Fatal("No token provided")
-	}
 
 	connectInterval := os.Getenv("CONNECT_INTERVAL")
 	defaultInterval := 5 * time.Minute
@@ -82,14 +89,6 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient, token string
 	if err != nil {
 		log.Fatalf("Error opening still file: %v", err)
 	}
-
-	// prepare the client to auth
-	client.GetConfig().AddDefaultHeader("Token", token)
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal(err)
-	}
-	client.GetConfig().AddDefaultHeader("Fingerprint", hostname)
 
 	//assemble the request
 	snapshotRequest := client.CameraAPI.CSnapshotPut(ctx)
