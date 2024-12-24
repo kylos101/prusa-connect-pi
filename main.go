@@ -22,7 +22,10 @@ func main() {
 		log.Fatalf("Error parsing API URL: %v", err)
 	}
 
-	client := NewClient(baseURL)
+	client := openapi.NewAPIClient(&openapi.Configuration{
+		Host:   baseURL.String(),
+		Scheme: baseURL.Scheme,
+	})
 	if client == nil {
 		log.Fatalf("Error creating client")
 	}
@@ -78,14 +81,18 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient, token string
 	if err != nil {
 		log.Fatalf("Error opening still file: %v", err)
 	}
-	snapshotRequest := client.CameraAPI.CSnapshotPut(ctx)
-	snapshotRequest.Body(stillFile)
+
+	// prepare the client to auth
 	client.GetConfig().AddDefaultHeader("Token", token)
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatal(err)
 	}
 	client.GetConfig().AddDefaultHeader("Fingerprint", hostname)
+
+	//assemble the request
+	snapshotRequest := client.CameraAPI.CSnapshotPut(ctx)
+	snapshotRequest.Body(stillFile)
 
 	// upload
 	response, err := client.CameraAPI.CSnapshotPutExecute(snapshotRequest)
@@ -96,12 +103,4 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient, token string
 		log.Printf("Unsuccessful snapshot upload: %v", response)
 	}
 
-}
-
-func NewClient(baseURL *url.URL) *openapi.APIClient {
-	c := openapi.NewAPIClient(&openapi.Configuration{
-		Host:   baseURL.String(),
-		Scheme: baseURL.Scheme,
-	})
-	return c
 }
