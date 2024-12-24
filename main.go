@@ -51,6 +51,7 @@ func main() {
 		interval = defaultInterval
 	}
 
+	UploadSnapshot(cancelCtx, client, token)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	defer cancel()
