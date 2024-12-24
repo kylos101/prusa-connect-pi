@@ -1,4 +1,4 @@
-module github.com/kylos101/prusa-connect/v2
+module github.com/kylos101/prusa-connect-pi/v2
 
 go 1.18
 

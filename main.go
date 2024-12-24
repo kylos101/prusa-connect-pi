@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/kylos101/prusa-connect/v2/pkg/openapi"
+	"github.com/kylos101/prusa-connect-pi/v2/pkg/openapi"
 )
 
 func main() {

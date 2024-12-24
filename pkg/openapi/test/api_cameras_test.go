@@ -13,7 +13,7 @@ import (
 	"context"
 	"testing"
 
-	openapiclient "github.com/kylos101/prusa-connect/v2"
+	openapiclient "github.com/kylos101/prusa-connect-pi/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
