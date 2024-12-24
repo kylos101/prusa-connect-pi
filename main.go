@@ -47,7 +47,7 @@ func main() {
 
 	interval, err := time.ParseDuration(connectInterval)
 	if err != nil {
-		log.Printf("Error parsing interval: %v, using default of 5m", err)
+		log.Printf("Unable to parse connect interval: %v, using default of 5m", err)
 		interval = defaultInterval
 	}
 
