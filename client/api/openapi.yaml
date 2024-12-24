@@ -1,0 +1,597 @@
+openapi: 3.1.0
+info:
+  description: |-
+    # API Rules
+    * Null values are not sent / received.
+    * Object IDs are **always** sent in list methods, but are **ignored** in create / update methods.
+    * All request and response objects are at the root of the returned structure, if they contain only one entity.
+    * Response of multiple entities is returned as an object that contains the list of entities and a structure `pager`, if necessary.
+    ### Additional documentation:
+    * [Camera registration](../camera_registration/)
+    * [Camera communication](../camera_communication/)
+    ### HTTP Status
+    * 200 - OK, response contains data (usually the entire entity)
+    * 201 - OK, entry created; response contains data as required
+    * 204 - OK, no response
+    * 304 - Response has not been modified
+    * 400 - Invalid request / invalid input (SDK error)
+    * 401 - Endpoint is being accessed without credentials (SDK error)
+    * 403 - Request can't be served, usually due to insufficient rights (user error)
+    * 404 - Entity not found (user error or outdated data)
+    * 409 - Conflict with the state of target resource (user error)
+    * 50x - Server side error
+  title: connect-api
+  version: 0.22.0
+  x-logo:
+    url: ../logo.png
+    backgroundColor: '#FFFFFF'
+    altText: Prusa logo
+servers:
+- description: Local development server
+  url: "http://{hostname}:{port}"
+  variables:
+    hostname:
+      default: localhost
+      description: Developer's hostname
+    port:
+      default: "8000"
+      description: Developer's port
+- description: Any working server
+  url: "http://{hostname}"
+  variables:
+    hostname:
+      default: localhost
+      description: Developer's hostname
+- description: Any working server
+  url: "https://{hostname}"
+  variables:
+    hostname:
+      default: localhost
+      description: Developer's hostname
+- description: Production environment
+  url: https://connect.prusa3d.com
+tags:
+- name: camera
+- name: cameras
+paths:
+  /app/printers/{printer_uuid}/camera:
+    post:
+      parameters:
+      - $ref: '#/components/parameters/printer_uuid_param'
+      - explode: true
+        in: query
+        name: origin
+        required: false
+        schema:
+          default: WEB
+          description: Use OTHER for camera registration via api. WEB is used when
+            registering camera via web qr code
+          enum:
+          - WEB
+          - OTHER
+          type: string
+        style: form
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/camera_response'
+          description: '**Created camera with token.**'
+        "400":
+          $ref: '#/components/responses/400'
+        "401":
+          $ref: '#/components/responses/401-app'
+        "403":
+          $ref: '#/components/responses/403-app'
+        "503":
+          $ref: '#/components/responses/503'
+      security:
+      - Cookie: []
+      summary: Register camera to Connect by user.
+      tags:
+      - cameras
+  /c/snapshot:
+    put:
+      requestBody:
+        content:
+          image/jpg:
+            schema:
+              description: Max snapshot size is 16MB
+              format: binary
+              type: string
+        required: true
+      responses:
+        "204":
+          $ref: '#/components/responses/204'
+        "400":
+          $ref: '#/components/responses/400'
+        "401":
+          $ref: '#/components/responses/401-p'
+        "403":
+          $ref: '#/components/responses/403-p'
+        "404":
+          $ref: '#/components/responses/404'
+        "503":
+          $ref: '#/components/responses/503'
+      security:
+      - Token: []
+        Fingerprint: []
+      summary: Upload snapshot to Connect
+      tags:
+      - camera
+  /c/info:
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/camera_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/camera_response'
+          description: '**OK**'
+        "400":
+          $ref: '#/components/responses/400'
+        "401":
+          $ref: '#/components/responses/401-p'
+        "403":
+          $ref: '#/components/responses/403-p'
+        "503":
+          $ref: '#/components/responses/503'
+      security:
+      - Token: []
+        Fingerprint: []
+      summary: Update camera attributes
+      tags:
+      - camera
+components:
+  headers:
+    Last-Modified:
+      explode: false
+      schema:
+        description: "Last modified time defined by RFC 7232, [section 2.2](https://tools.ietf.org/html/rfc7232#section-2.2)"
+        example: "Last-Modified: Wed, 14 Oct 2015 16:57:02 GMT"
+      style: simple
+    etag:
+      explode: false
+      schema:
+        description: An identifier for a specific version of a response
+        example: "etag: W/'98f4143a4a'"
+      style: simple
+  parameters:
+    printer_uuid_param:
+      explode: false
+      in: path
+      name: printer_uuid
+      required: true
+      schema:
+        $ref: '#/components/schemas/printer_uuid'
+      style: simple
+  responses:
+    "204":
+      description: |-
+        **No Content**
+        Data was accepted by the server.
+    "302":
+      description: |-
+        **Found**
+        Moved temporarily.
+    "303":
+      description: '**See other**'
+    "304":
+      description: '**Response not modified**'
+      headers:
+        Last-Modified:
+          $ref: '#/components/headers/Last-Modified'
+        etag:
+          $ref: '#/components/headers/etag'
+    "400":
+      description: |-
+        **Bad Request**
+        Some data received is not valid. Typically this happens for POST requests with incorrect structure or a path argument was sent that is not defined in the URL.
+    "401-app":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: |-
+        **Unauthorized**
+        Missing security token or it is not valid.
+    "401-p":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: |-
+        **Unauthorized**
+        Missing security token or it is not valid.
+    "403-app":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: |-
+        **Forbidden**
+        Security token is not valid or is outdated. Or user doesn't has rights for perform action.
+    "403-p":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: |-
+        **Forbidden**
+        Security token is not valid or is outdated.
+    "404":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: '**Not Found** Entity not found or invalid auth token.'
+    "409":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: |-
+        **Conflict**
+        Request could not be processed because the requested change would create a conflict in the database.
+    "413":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: |-
+        **Payload too large**
+        Chunked request was too large.
+    "429":
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: '**Too many requests**'
+    "503":
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: null
+        application/json:
+          schema:
+            $ref: '#/components/schemas/status'
+      description: |-
+        **Service Unavailable**
+        Service is unavailable at this moment. Try again later.
+  schemas:
+    token:
+      example: T0nSPU2v05v0pJeKYFYV
+      maxLength: 20
+      minLength: 20
+      type: string
+    network_info:
+      description: Network information
+      example:
+        wifi_ipv4: 192.168.1.6
+        lan_ipv6: 2e0a::1234:5678:abcd:efab/64
+        wifi_ssid: PublicWiFi
+        lan_ipv4: 192.168.1.5
+        wifi_mac: 0a:bc:12:34:ab:7f
+        lan_mac: 0a:bc:12:34:56:7f
+        wifi_ipv6: 2e0a::1234:5678:abcd:0123/64
+      properties:
+        lan_mac:
+          description: Hardware address of ethernet port.
+          example: 0a:bc:12:34:56:7f
+          type: string
+        lan_ipv4:
+          description: IPv4 address of ethernet port.
+          example: 192.168.1.5
+          type: string
+        lan_ipv6:
+          description: IPv6 address of ethernet port.
+          example: 2e0a::1234:5678:abcd:efab/64
+          type: string
+        wifi_mac:
+          description: Hardware address of Wi-Fi device.
+          example: 0a:bc:12:34:ab:7f
+          type: string
+        wifi_ipv4:
+          description: IPv4 address of Wi-Fi device.
+          example: 192.168.1.6
+          type: string
+        wifi_ipv6:
+          description: IPv6 address of Wi-Fi device.
+          example: 2e0a::1234:5678:abcd:0123/64
+          type: string
+        wifi_ssid:
+          description: SSID of Wi-Fi network which is used by Wi-Fi device.
+          example: PublicWiFi
+          type: string
+    camera_resolution:
+      example:
+        width: 640
+        height: 480
+      properties:
+        width:
+          example: 640
+          type: integer
+        height:
+          example: 480
+          type: integer
+    camera_capabilities:
+      items:
+        enum:
+        - trigger_scheme
+        - imaging
+        - resolution
+        - focus
+        type: string
+      type: array
+    camera_config:
+      description: Configuration of the camera
+      example:
+        trigger_scheme: THIRTY_SEC
+        path: /dev/video0
+        driver: V4L2
+        camera_id: camera_id
+        name: Olomouc
+        model: C920
+        resolution:
+          width: 640
+          height: 480
+        firmware: 1.0.0
+        network_info:
+          wifi_ipv4: 192.168.1.6
+          lan_ipv6: 2e0a::1234:5678:abcd:efab/64
+          wifi_ssid: PublicWiFi
+          lan_ipv4: 192.168.1.5
+          wifi_mac: 0a:bc:12:34:ab:7f
+          lan_mac: 0a:bc:12:34:56:7f
+          wifi_ipv6: 2e0a::1234:5678:abcd:0123/64
+        manufacturer: Prusa
+      properties:
+        camera_id:
+          type: string
+          example: null
+        path:
+          description: Path to the driver
+          example: /dev/video0
+          type: string
+        name:
+          description: Name defined by user
+          example: Olomouc
+          maxLength: 64
+          type: string
+          nullable: true
+        driver:
+          example: V4L2
+          type: string
+        trigger_scheme:
+          default: THIRTY_SEC
+          description: "Type of snapshot trigger scheme. Manual, layer, gcode only\
+            \ for LINK cameras"
+          enum:
+          - MANUAL
+          - EACH_LAYER
+          - FIFTH_LAYER
+          - GCODE
+          - TEN_SEC
+          - THIRTY_SEC
+          - SIXTY_SEC
+          - TEN_MIN
+          example: THIRTY_SEC
+          type: string
+        resolution:
+          $ref: '#/components/schemas/camera_resolution'
+        network_info:
+          $ref: '#/components/schemas/network_info'
+        firmware:
+          description: Firmware version of the camera
+          example: 1.0.0
+          type: string
+        manufacturer:
+          description: Manufacturer of the camera
+          example: Prusa
+          type: string
+        model:
+          description: Model of the camera
+          example: C920
+          type: string
+      required:
+      - name
+    camera_options:
+      description: Configuration of the camera
+      example:
+        available_resolutions:
+        - width: 640
+          height: 480
+        - width: 640
+          height: 480
+      properties:
+        available_resolutions:
+          items:
+            $ref: '#/components/schemas/camera_resolution'
+          type: array
+    camera_origin:
+      description: Camera origin whether it is registered by web (WEB) or by printer
+        (LINK) or manually via camera api (OTHER)
+      enum:
+      - LINK
+      - WEB
+      - OTHER
+      type: string
+    camera_request:
+      properties:
+        config:
+          $ref: '#/components/schemas/camera_config'
+        options:
+          $ref: '#/components/schemas/camera_options'
+        capabilities:
+          items:
+            enum:
+            - trigger_scheme
+            - imaging
+            - resolution
+            - focus
+            type: string
+          type: array
+      required:
+      - config
+    camera_response:
+      example:
+        capabilities:
+        - trigger_scheme
+        - trigger_scheme
+        deleted: 1
+        origin: LINK
+        name: Olomouc
+        options:
+          available_resolutions:
+          - width: 640
+            height: 480
+          - width: 640
+            height: 480
+        registered: true
+        id: 0
+        team_id: 0
+        config:
+          trigger_scheme: THIRTY_SEC
+          path: /dev/video0
+          driver: V4L2
+          camera_id: camera_id
+          name: Olomouc
+          model: C920
+          resolution:
+            width: 640
+            height: 480
+          firmware: 1.0.0
+          network_info:
+            wifi_ipv4: 192.168.1.6
+            lan_ipv6: 2e0a::1234:5678:abcd:efab/64
+            wifi_ssid: PublicWiFi
+            lan_ipv4: 192.168.1.5
+            wifi_mac: 0a:bc:12:34:ab:7f
+            lan_mac: 0a:bc:12:34:56:7f
+            wifi_ipv6: 2e0a::1234:5678:abcd:0123/64
+          manufacturer: Prusa
+        sort_order: 5
+        printer_uuid: cfed5dce-86f4-4d7c-a198-9a81b176369f
+        token: T0nSPU2v05v0pJeKYFYV
+      properties:
+        id:
+          type: integer
+        name:
+          description: Name defined by user
+          example: Olomouc
+          maxLength: 64
+          type: string
+          nullable: true
+        config:
+          $ref: '#/components/schemas/camera_config'
+        options:
+          $ref: '#/components/schemas/camera_options'
+        capabilities:
+          items:
+            enum:
+            - trigger_scheme
+            - imaging
+            - resolution
+            - focus
+            type: string
+          type: array
+        team_id:
+          description: Team id. 0 is reserved for anonymous.
+          minimum: 0
+          type: integer
+        printer_uuid:
+          description: Printer UUID - can be found in the url in printer detail or
+            in the printer settings tab
+          example: cfed5dce-86f4-4d7c-a198-9a81b176369f
+          pattern: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+          type: string
+        token:
+          example: T0nSPU2v05v0pJeKYFYV
+          maxLength: 20
+          minLength: 20
+          type: string
+        origin:
+          $ref: '#/components/schemas/camera_origin'
+        deleted:
+          description: Timestamp of camera deletion. Deleted cameras are listed only
+            in job detail!
+          type: integer
+        registered:
+          description: True if the registration process of camera is finished
+          type: boolean
+        sort_order:
+          description: Sort order of the cameras per printer! For now it is not possible
+            to change the camera's sort order
+          type: integer
+      required:
+      - id
+      - origin
+      - printer_uuid
+      - registered
+      - team_id
+    status:
+      example:
+        code: code
+        message: message
+      properties:
+        code:
+          description: Error code
+          type: string
+        message:
+          description: Human readable error message
+          minLength: 1
+          type: string
+      required:
+      - code
+      - message
+    device_name:
+      description: Name defined by user
+      example: Olomouc
+      maxLength: 64
+      type: string
+      nullable: true
+    team_id:
+      description: Team id. 0 is reserved for anonymous.
+      minimum: 0
+      type: integer
+    printer_uuid:
+      description: Printer UUID - can be found in the url in printer detail or in
+        the printer settings tab
+      example: cfed5dce-86f4-4d7c-a198-9a81b176369f
+      pattern: "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      type: string
+  securitySchemes:
+    Token:
+      description: Camera token generated by Connect server.
+      in: header
+      name: Token
+      type: apiKey
+    Fingerprint:
+      description: Camera fingerprint generated by camera. It has to have at least
+        16 and maximum of 64 characters.
+      in: header
+      name: Fingerprint
+      type: apiKey
+    Cookie:
+      in: cookie
+      name: SESSID
+      type: apiKey
+x-tagGroups:
+- name: General
+  tags:
+  - version
+  - health
+- name: App
+  tags:
+  - cameras
+- name: Camera
+  tags:
+  - camera
