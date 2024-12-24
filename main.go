@@ -86,6 +86,7 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient, token string
 		log.Fatal(err)
 	}
 	client.GetConfig().AddDefaultHeader("Fingerprint", hostname)
+
 	// upload
 	response, err := client.CameraAPI.CSnapshotPutExecute(snapshotRequest)
 	if err != nil {
