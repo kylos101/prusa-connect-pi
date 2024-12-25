@@ -46,13 +46,18 @@ func main() {
 	cancelCtx, cancel := context.WithCancel(apiKeysContext)
 
 	connectInterval := os.Getenv("CONNECT_INTERVAL")
-	defaultInterval := 5 * time.Minute
-
-	interval, err := time.ParseDuration(connectInterval)
-	if err != nil {
-		log.Printf("CONNECT_INTERVAL not specified or parsing error: %v. Using default internval of 5m.", err)
-		interval = defaultInterval
+	interval := 5 * time.Minute
+	if connectInterval == "" {
+		log.Printf("CONNECT_INTERVAL not specified. Using default internval of %v.", interval)
+	} else {
+		customInterval, err := time.ParseDuration(connectInterval)
+		if err != nil {
+			log.Printf("CONNECT_INTERVAL parsing error: %v. Using default internval of 5m.", err)
+		} else {
+			interval = customInterval
+		}
 	}
+
 	client := newClient(baseURL)
 	defer cancel()
 	UploadSnapshot(cancelCtx, client)
