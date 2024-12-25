@@ -92,11 +92,12 @@ func newClient(baseURL *url.URL) *openapi.APIClient {
 		log.Print("CONNECT_DEBUG is enabled")
 	}
 
-	client := openapi.NewAPIClient(&openapi.Configuration{
-		Host:   baseURL.Hostname(),
-		Scheme: baseURL.Scheme,
-		Debug:  connectDebug,
-	})
+	config := openapi.NewConfiguration()
+	config.Host = baseURL.Hostname()
+	config.Scheme = baseURL.Scheme
+	config.Debug = connectDebug
+
+	client := openapi.NewAPIClient(config)
 	if client == nil {
 		log.Fatal("Error creating client")
 	}
