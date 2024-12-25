@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"log"
 	"net/url"
 	"os"
@@ -19,27 +21,12 @@ func main() {
 	}
 	baseURL, err := url.Parse(apiUrl)
 	if err != nil {
-		log.Fatalf("Error parsing API URL: %v", err)
+		log.Fatalf("Error parsing API URL: %v\n", err)
 	}
 
 	token := os.Getenv("CONNECT_TOKEN")
 	if token == "" {
 		log.Fatal("No token provided")
-	}
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal(err)
-	}
-	client := openapi.NewAPIClient(&openapi.Configuration{
-		Host:   baseURL.String(),
-		Scheme: baseURL.Scheme,
-		DefaultHeader: map[string]string{
-			"Token":       token,
-			"Fingerprint": hostname,
-		},
-	})
-	if client == nil {
-		log.Fatalf("Error creating client")
 	}
 
 	ctx := context.WithValue(context.Background(), openapi.ContextServerVariables, map[string]string{
@@ -58,6 +45,7 @@ func main() {
 		interval = defaultInterval
 	}
 
+	client := newClient(baseURL, token)
 	UploadSnapshot(cancelCtx, client)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -65,6 +53,23 @@ func main() {
 	for range ticker.C {
 		UploadSnapshot(cancelCtx, client)
 	}
+}
+
+func newClient(baseURL *url.URL, token string) *openapi.APIClient {
+	defaultHeaders := map[string]string{
+		"Token":       token,
+		"Fingerprint": getFingerprint(),
+	}
+
+	client := openapi.NewAPIClient(&openapi.Configuration{
+		Host:          baseURL.String(),
+		Scheme:        baseURL.Scheme,
+		DefaultHeader: defaultHeaders,
+	})
+	if client == nil {
+		log.Fatal("Error creating client")
+	}
+	return client
 }
 
 func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
@@ -80,14 +85,14 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 
 	out, err := cmd.Output()
 	if err != nil {
-		log.Fatalf("Error running rpicam-still: %v", err)
+		log.Fatalf("Error running rpicam-still: %v\n", err)
 	}
 	log.Printf("rpicam-still output: %s\n", out)
 
 	// build a request to upload the still
 	stillFile, err := os.Open(stillFilename)
 	if err != nil {
-		log.Fatalf("Error opening still file: %v", err)
+		log.Fatalf("Error opening still file: %v\n", err)
 	}
 
 	//assemble the request
@@ -97,10 +102,20 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 	// upload
 	response, err := client.CameraAPI.CSnapshotPutExecute(snapshotRequest)
 	if err != nil {
-		log.Fatalf("Error uploading snapshot: %v", err)
+		log.Fatalf("Error uploading snapshot. Error: %v, Response: %d-%v\n", err, response.StatusCode, response.Status)
 	}
 	if response.StatusCode != 200 {
 		log.Printf("Unsuccessful snapshot upload: %v", response)
 	}
+}
+
+func getFingerprint() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatal(err)
+	}
+	hash := sha256.Sum256([]byte(hostname))
+	hashStr := hex.EncodeToString(hash[:])
+	return hashStr[:16]
 
 }
