@@ -80,9 +80,15 @@ func setup() (*url.URL, time.Duration, context.Context) {
 }
 
 func newClient(baseURL *url.URL) *openapi.APIClient {
+	connectDebug, err := strconv.ParseBool(os.Getenv("CONNECT_DEBUG"))
+	if err != nil && os.Getenv("CONNECT_DEBUG") != "" {
+		log.Fatalf("Invalid value for CONNECT_DEBUG: %v. Please use 'true' or 'false'", os.Getenv("ENABLE_PPROF"))
+	}
+
 	client := openapi.NewAPIClient(&openapi.Configuration{
 		Host:   baseURL.String(),
 		Scheme: baseURL.Scheme,
+		Debug:  connectDebug,
 	})
 	if client == nil {
 		log.Fatal("Error creating client")
