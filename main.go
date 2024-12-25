@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -17,7 +18,7 @@ func main() {
 	apiUrl := os.Getenv("CONNECT_API_URL")
 	if apiUrl == "" {
 		apiUrl = "https://connect.prusa3d.com/app/"
-		log.Printf("CONNECT_API_URL not specified, using default API URL: %s\n", apiUrl)
+		log.Printf("CONNECT_API_URL not specified. Using default API URL: %s\n", apiUrl)
 	}
 	baseURL, err := url.Parse(apiUrl)
 	if err != nil {
@@ -75,10 +76,14 @@ func newClient(baseURL *url.URL) *openapi.APIClient {
 }
 
 func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
-	// capture a still
+	log.Print("Capturing still")
 	stillFilename := "output.jpg"
 	cmd := exec.Command("rpicam-still", "-n", "-o", stillFilename)
+	var err error
 	defer func() {
+		if err != nil {
+			log.Printf("Unexpected error: %v\n", err)
+		}
 		log.Print("Removing output.jpg")
 		if err := os.Remove("output.jpg"); err != nil {
 			log.Printf("Error removing output.jpg: %v", err)
@@ -86,23 +91,24 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 	}()
 	out, err := cmd.Output()
 	if err != nil {
-		log.Fatalf("Error running rpicam-still: %v\n", err)
+		err = fmt.Errorf("error running rpicam-still: %v", err)
+		return
 	}
-	log.Printf("rpicam-still output: %s\n", out)
+	log.Printf("rpicam-still output: %v\n", out)
 
-	// build a request to upload the still
+	log.Print("Assemble a request to upload snapshot")
 	stillFile, err := os.Open(stillFilename)
 	if err != nil {
-		log.Fatalf("Error opening still file: %v\n", err)
+		err = fmt.Errorf("error opening still file: %v", err)
+		return
 	}
-
-	//assemble the request
 	snapshotRequest := client.CameraAPI.CSnapshotPut(ctx).Body(stillFile)
 
-	// upload
+	log.Print("Uploading snapshot")
 	response, err := client.CameraAPI.CSnapshotPutExecute(snapshotRequest)
 	if err != nil {
-		log.Fatalf("Error uploading snapshot. Error: %+v,\n", err)
+		err = fmt.Errorf("error uploading snapshot: %+v", err)
+		return
 	}
 	if response.StatusCode != 200 {
 		log.Printf("Unsuccessful snapshot upload: %v. Status code and status: %d-%v\n", response, response.StatusCode, response.Status)
