@@ -110,7 +110,7 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 	snapshotRequest := client.CameraAPI.CSnapshotPut(ctx).Body(stillFile)
 
 	log.Print("Uploading snapshot")
-	response, err := client.CameraAPI.CSnapshotPutExecute(snapshotRequest)
+	response, err := snapshotRequest.Execute()
 	if err != nil {
 		err = fmt.Errorf("error uploading snapshot: %+v", err)
 		return
