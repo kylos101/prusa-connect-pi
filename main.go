@@ -97,8 +97,7 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 	}
 
 	//assemble the request
-	snapshotRequest := client.CameraAPI.CSnapshotPut(ctx)
-	snapshotRequest.Body(stillFile)
+	snapshotRequest := client.CameraAPI.CSnapshotPut(ctx).Body(stillFile)
 
 	// upload
 	response, err := client.CameraAPI.CSnapshotPutExecute(snapshotRequest)
