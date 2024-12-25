@@ -16,8 +16,8 @@ import (
 func main() {
 	apiUrl := os.Getenv("CONNECT_API_URL")
 	if apiUrl == "" {
-		log.Printf("Using default API URL")
 		apiUrl = "https://connect.prusa3d.com/app/"
+		log.Printf("CONNECT_API_URL not specified, using default API URL: %s\n", apiUrl)
 	}
 	baseURL, err := url.Parse(apiUrl)
 	if err != nil {
@@ -26,27 +26,33 @@ func main() {
 
 	token := os.Getenv("CONNECT_TOKEN")
 	if token == "" {
-		log.Fatal("No token provided")
+		log.Fatal("CONNECT_TOKEN not provided!")
 	}
+	fingerPrint := getFingerprint()
 
-	ctx := context.WithValue(context.Background(), openapi.ContextServerVariables, map[string]string{
+	// set some server variables for openapi
+	serverVariableContext := context.WithValue(context.Background(), openapi.ContextServerVariables, map[string]string{
 		"hostname": baseURL.Host,
 		"basePath": baseURL.Path,
 		"scheme":   baseURL.Scheme,
 	})
-	cancelCtx, cancel := context.WithCancel(ctx)
+	// define which api keys we'd like to use for openapi
+	apiKeysContext := context.WithValue(serverVariableContext, openapi.ContextAPIKeys, map[string]string{
+		"Token":       token,
+		"Fingerprint": fingerPrint,
+	})
+
+	cancelCtx, cancel := context.WithCancel(apiKeysContext)
 
 	connectInterval := os.Getenv("CONNECT_INTERVAL")
 	defaultInterval := 5 * time.Minute
 
 	interval, err := time.ParseDuration(connectInterval)
 	if err != nil {
-		log.Printf("Unable to parse connect interval. Error: %v. Using default internval of 5m", err)
+		log.Printf("CONNECT_INTERVAL not specified or parsing error: %v. Using default internval of 5m.", err)
 		interval = defaultInterval
 	}
-
-	fingerPrint := getFingerprint()
-	client := newClient(baseURL, token, fingerPrint)
+	client := newClient(baseURL)
 	defer cancel()
 	UploadSnapshot(cancelCtx, client)
 	ticker := time.NewTicker(interval)
@@ -57,15 +63,10 @@ func main() {
 	}
 }
 
-func newClient(baseURL *url.URL, token string, fingerPrint string) *openapi.APIClient {
-	defaultHeaders := map[string]string{
-		"Token":       token,
-		"Fingerprint": fingerPrint,
-	}
+func newClient(baseURL *url.URL) *openapi.APIClient {
 	client := openapi.NewAPIClient(&openapi.Configuration{
-		Host:          baseURL.String(),
-		Scheme:        baseURL.Scheme,
-		DefaultHeader: defaultHeaders,
+		Host:   baseURL.String(),
+		Scheme: baseURL.Scheme,
 	})
 	if client == nil {
 		log.Fatal("Error creating client")
@@ -78,7 +79,7 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 	stillFilename := "output.jpg"
 	cmd := exec.Command("rpicam-still", "-n", "-o", stillFilename)
 	defer func() {
-		log.Printf("Removing output.jpg")
+		log.Print("Removing output.jpg")
 		if err := os.Remove("output.jpg"); err != nil {
 			log.Printf("Error removing output.jpg: %v", err)
 		}
@@ -102,7 +103,7 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 	// upload
 	response, err := client.CameraAPI.CSnapshotPutExecute(snapshotRequest)
 	if err != nil {
-		log.Fatalf("Error uploading snapshot. Error: %v,\n", err)
+		log.Fatalf("Error uploading snapshot. Error: %+v,\n", err)
 	}
 	if response.StatusCode != 200 {
 		log.Printf("Unsuccessful snapshot upload: %v. Status code and status: %d-%v\n", response, response.StatusCode, response.Status)
