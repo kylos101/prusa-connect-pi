@@ -64,6 +64,9 @@ func setup() (*url.URL, time.Duration, context.Context) {
 		"Fingerprint": {Key: fingerPrint},
 	})
 
+	// this is required as per the docs
+	ctx := context.WithValue(apiKeysContext, openapi.ContextServerIndex, 1)
+
 	connectInterval := os.Getenv("CONNECT_INTERVAL")
 	interval := 5 * time.Minute
 	if connectInterval == "" {
@@ -76,7 +79,7 @@ func setup() (*url.URL, time.Duration, context.Context) {
 			interval = customInterval
 		}
 	}
-	return baseURL, interval, apiKeysContext
+	return baseURL, interval, ctx
 }
 
 func newClient(baseURL *url.URL) *openapi.APIClient {
