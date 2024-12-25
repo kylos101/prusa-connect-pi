@@ -53,10 +53,11 @@ func setup() (*url.URL, time.Duration, context.Context) {
 	fingerPrint := getFingerprint()
 
 	// set some server variables for openapi
+	log.Printf("Using API host: %s and scheme: %s\n and basePath: %s", baseURL.Host, baseURL.Scheme, baseURL.Path)
 	serverVariableContext := context.WithValue(context.Background(), openapi.ContextServerVariables, map[string]string{
 		"hostname": baseURL.Host,
-		"basePath": baseURL.Path,
 		"scheme":   baseURL.Scheme,
+		"basePath": baseURL.Path,
 	})
 	// define which api keys we'd like to use for openapi
 	apiKeysContext := context.WithValue(serverVariableContext, openapi.ContextAPIKeys, map[string]openapi.APIKey{
@@ -92,7 +93,7 @@ func newClient(baseURL *url.URL) *openapi.APIClient {
 	}
 
 	client := openapi.NewAPIClient(&openapi.Configuration{
-		Host:   baseURL.String(),
+		Host:   baseURL.Hostname(),
 		Scheme: baseURL.Scheme,
 		Debug:  connectDebug,
 	})
