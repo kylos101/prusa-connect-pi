@@ -109,7 +109,7 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 		err = fmt.Errorf("error running rpicam-still: %v", err)
 		return
 	}
-	log.Printf("rpicam-still output: %v\n", out)
+	log.Printf("rpicam-still output: %v\n", string(out))
 
 	log.Print("Assemble a request to upload snapshot")
 	stillFile, err := os.Open(stillFilename)
@@ -118,6 +118,7 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 		return
 	}
 	snapshotRequest := client.CameraAPI.CSnapshotPut(ctx).Body(stillFile)
+	log.Printf("Snapshot request: %+v\n", snapshotRequest)
 
 	log.Print("Uploading snapshot")
 	response, err := snapshotRequest.Execute()
