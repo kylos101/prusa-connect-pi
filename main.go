@@ -41,7 +41,7 @@ func main() {
 
 	interval, err := time.ParseDuration(connectInterval)
 	if err != nil {
-		log.Printf("Unable to parse connect interval: %v, using default of 5m", err)
+		log.Printf("Unable to parse connect interval. Error: %v. Using default internval of 5m", err)
 		interval = defaultInterval
 	}
 
@@ -102,10 +102,10 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 	// upload
 	response, err := client.CameraAPI.CSnapshotPutExecute(snapshotRequest)
 	if err != nil {
-		log.Fatalf("Error uploading snapshot. Error: %v, Response: %d-%v\n", err, response.StatusCode, response.Status)
+		log.Fatalf("Error uploading snapshot. Error: %v,\n", err)
 	}
 	if response.StatusCode != 200 {
-		log.Printf("Unsuccessful snapshot upload: %v", response)
+		log.Printf("Unsuccessful snapshot upload: %v. Status code and status: %d-%v\n", response, response.StatusCode, response.Status)
 	}
 }
 
