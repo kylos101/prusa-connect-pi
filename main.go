@@ -45,22 +45,23 @@ func main() {
 		interval = defaultInterval
 	}
 
-	client := newClient(baseURL, token)
+	fingerPrint := getFingerprint()
+	client := newClient(baseURL, token, fingerPrint)
+	defer cancel()
 	UploadSnapshot(cancelCtx, client)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-	defer cancel()
+
 	for range ticker.C {
 		UploadSnapshot(cancelCtx, client)
 	}
 }
 
-func newClient(baseURL *url.URL, token string) *openapi.APIClient {
+func newClient(baseURL *url.URL, token string, fingerPrint string) *openapi.APIClient {
 	defaultHeaders := map[string]string{
 		"Token":       token,
-		"Fingerprint": getFingerprint(),
+		"Fingerprint": fingerPrint,
 	}
-
 	client := openapi.NewAPIClient(&openapi.Configuration{
 		Host:          baseURL.String(),
 		Scheme:        baseURL.Scheme,
@@ -82,7 +83,6 @@ func UploadSnapshot(ctx context.Context, client *openapi.APIClient) {
 			log.Printf("Error removing output.jpg: %v", err)
 		}
 	}()
-
 	out, err := cmd.Output()
 	if err != nil {
 		log.Fatalf("Error running rpicam-still: %v\n", err)
