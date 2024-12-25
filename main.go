@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"os/exec"
@@ -146,11 +147,10 @@ func enablePprof() {
 	}
 
 	if enablePprof {
-		// Start the pprof HTTP server in a separate goroutine
 		go func() {
 			pprofPort := os.Getenv("PPROF_PORT")
 			if pprofPort == "" {
-				pprofPort = "6060" // Default pprof port
+				pprofPort = "6060"
 			}
 			pprofAddress := ":" + pprofPort
 			log.Printf("Starting pprof server on %s", pprofAddress)
