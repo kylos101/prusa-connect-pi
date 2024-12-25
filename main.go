@@ -6,15 +6,35 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/kylos101/prusa-connect-pi/v2/pkg/openapi"
 )
 
 func main() {
+	enablePprof()
+
+	baseURL, interval, ctx := setup()
+
+	cancelCtx, cancel := context.WithCancel(ctx)
+
+	client := newClient(baseURL)
+	defer cancel()
+	UploadSnapshot(cancelCtx, client)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		UploadSnapshot(cancelCtx, client)
+	}
+}
+
+func setup() (*url.URL, time.Duration, context.Context) {
 	apiUrl := os.Getenv("CONNECT_API_URL")
 	if apiUrl == "" {
 		apiUrl = "https://connect.prusa3d.com/app/"
@@ -43,8 +63,6 @@ func main() {
 		"Fingerprint": fingerPrint,
 	})
 
-	cancelCtx, cancel := context.WithCancel(apiKeysContext)
-
 	connectInterval := os.Getenv("CONNECT_INTERVAL")
 	interval := 5 * time.Minute
 	if connectInterval == "" {
@@ -57,16 +75,7 @@ func main() {
 			interval = customInterval
 		}
 	}
-
-	client := newClient(baseURL)
-	defer cancel()
-	UploadSnapshot(cancelCtx, client)
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		UploadSnapshot(cancelCtx, client)
-	}
+	return baseURL, interval, apiKeysContext
 }
 
 func newClient(baseURL *url.URL) *openapi.APIClient {
@@ -128,5 +137,27 @@ func getFingerprint() string {
 	hash := sha256.Sum256([]byte(hostname))
 	hashStr := hex.EncodeToString(hash[:])
 	return hashStr[:16]
+}
 
+func enablePprof() {
+	enablePprof, err := strconv.ParseBool(os.Getenv("ENABLE_PPROF"))
+	if err != nil && os.Getenv("ENABLE_PPROF") != "" {
+		log.Fatalf("Invalid value for ENABLE_PPROF: %v. Please use 'true' or 'false'", os.Getenv("ENABLE_PPROF"))
+	}
+
+	if enablePprof {
+		// Start the pprof HTTP server in a separate goroutine
+		go func() {
+			pprofPort := os.Getenv("PPROF_PORT")
+			if pprofPort == "" {
+				pprofPort = "6060" // Default pprof port
+			}
+			pprofAddress := ":" + pprofPort
+			log.Printf("Starting pprof server on %s", pprofAddress)
+			err := http.ListenAndServe(pprofAddress, nil)
+			if err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Error starting pprof server: %v", err)
+			}
+		}()
+	}
 }
