@@ -1,5 +1,6 @@
 name: Release
 
+# TODO: only run after CI is successful
 on:
   push:
     tags:
@@ -9,9 +10,12 @@ permissions:
   contents: write
 
 jobs:
+  build:
+    uses: ./.github/jobs/build.yml
   release:
     name: Release
     runs-on: ubuntu-latest
+    needs: [build]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
