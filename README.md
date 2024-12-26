@@ -1,11 +1,11 @@
-# prusa_connect
+# prusa-connect-pi-camera
 
 ## Instructions
 
 1. Download a release for your pi
-2. Copy the token for your camera from Prusa Connect, and set it as a `CONNECT_TOKEN` environment variable on your pi
+2. Copy the token from a camera in [Prusa Connect](https://connect.prusa3d.com/), and set it as a `CONNECT_TOKEN` environment variable on your pi
 3. Run the binary (perhaps as a service)
-4. Print something
+4. Print something, pictures will be taken on an interval (5m is the default, set `CONNECT_INTERVAL` to override)
 5. Observe the first and last images via the Print History from Prusa Connect
 
 ## dependencies
