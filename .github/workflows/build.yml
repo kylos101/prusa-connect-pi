@@ -24,3 +24,11 @@ jobs:
 
       - name: Run tests
         run: go test ./... -cover
+
+      - name: Build
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          args: build --snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
