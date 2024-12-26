@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kylos101/prusa-connect-pi/v2/pkg/openapi"
+	"github.com/kylos101/prusa-connect-pi-camera/v2/pkg/openapi"
 )
 
 func main() {

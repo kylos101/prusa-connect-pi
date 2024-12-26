@@ -1,4 +1,4 @@
-module github.com/kylos101/prusa-connect-pi/v2
+module github.com/kylos101/prusa-connect-pi-camera/v2
 
 go 1.18
 

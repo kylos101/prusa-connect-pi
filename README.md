@@ -26,7 +26,7 @@ sudo docker run --rm   -v ${PWD}:/local openapitools/openapi-generator-cli gener
 ### replacing the go.mod entry with the generated client
 
 ```bash
-go mod edit -replace github.com/kylos101/prusa-connect-pi/v2/pkg/openapi=./pkg/openapi
+go mod edit -replace github.com/kylos101/prusa-connect-pi-camera/v2/pkg/openapi=./pkg/openapi
 ```
 
 ### creating a manual release
@@ -34,5 +34,5 @@ go mod edit -replace github.com/kylos101/prusa-connect-pi/v2/pkg/openapi=./pkg/o
 Prior to doing, you must have set a GITHUB_TOKEN environment variable.
 
 ```bash
-sudo docker run --rm --privileged   -v $PWD:/go/src/github.com/kylos101/prusa-connect-pi -v /var/run/docker.sock:/var/run/docker.sock -w /go/src/github.com/kylos101/prusa-connect-pi -e GITHUB_TOKEN goreleaser/goreleaser release
+sudo docker run --rm --privileged   -v $PWD:/go/src/github.com/kylos101/prusa-connect-pi-camera -v /var/run/docker.sock:/var/run/docker.sock -w /go/src/github.com/kylos101/prusa-connect-pi-camera -e GITHUB_TOKEN goreleaser/goreleaser release
 ```
