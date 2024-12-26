@@ -6,7 +6,7 @@ A Raspberry Pi with a camera, where `rpicam-still -n -o test.jpg` just works.
 
 ## Instructions
 
-1. Add a 3rd party camer in [Prusa Connect](https://connect.prusa3d.com/), copy the token, and set it as a `CONNECT_TOKEN` environment variable on your pi
+1. Add a 3rd party camera in [Prusa Connect](https://connect.prusa3d.com/), copy the token, and set it as a `CONNECT_TOKEN` environment variable on your pi
 2. Download and run the binary (see below instructions to setup a service)
 3. Print something, pictures will be taken on an interval (5m is the default, set `CONNECT_INTERVAL` to override)
 4. Observe the first and last images via the Print History from Prusa Connect
