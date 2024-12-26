@@ -84,12 +84,13 @@ func setup() (*url.URL, time.Duration, context.Context) {
 }
 
 func newClient(baseURL *url.URL) *openapi.APIClient {
-	connectDebug, err := strconv.ParseBool(os.Getenv("CONNECT_DEBUG"))
-	if err != nil && os.Getenv("CONNECT_DEBUG") != "" {
-		log.Fatalf("Invalid value for CONNECT_DEBUG: %v. Please use 'true' or 'false'", os.Getenv("ENABLE_PPROF"))
+	connectDebugVal := os.Getenv("CONNECT_DEBUG")
+	connectDebug, err := strconv.ParseBool(connectDebugVal)
+	if err != nil && connectDebugVal != "" {
+		log.Fatalf("Invalid value for CONNECT_DEBUG: %v. Please use 'true' or 'false'", connectDebugVal)
 	}
 	if connectDebug {
-		log.Print("CONNECT_DEBUG is enabled")
+		log.Print("CONNECT_DEBUG is enabled, will debug API client")
 	}
 
 	config := openapi.NewConfiguration()
