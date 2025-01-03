@@ -40,6 +40,7 @@ Create a file containing environment variables in `/etc/prusa-connect-pi-camera/
 
 ```
 CONNECT_TOKEN=your_token
+#CONNECT_INTERVAL=1m
 #CONNECT_URL=some_other_url # Set to override the default url
 #ENABLE_PPROF=true # Enable pprof for debugging if needed
 #PPROF_PORT=6060 # Set port if you want other than 6060 for pprof
@@ -56,6 +57,11 @@ sudo systemctl status prusa-connect-pi-camera.service
 sudo journalctl -u prusa-connect-pi-camera.service
 ```
 
+### Example
+
+Here you can see the image visible in Prusa Connect.
+
+![Sample from Prusa Connect](https://github.com/user-attachments/assets/62102ac6-7679-452c-83cd-a292ac4facc4 "Sample from Prusa Connect")
 
 ## development
 
